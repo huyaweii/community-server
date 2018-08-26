@@ -34,158 +34,107 @@ router.get('/login', async function (req, res, next) {
     res.send(err)
   }
 })
-router.post('/publish_post', async function (req, res, next) {
-  const sql = `insert into post (content, category_id, open_id, create_time, type) values (?, ?, ?, ?, ?)`
-  const {content, category_id, openid, type} = req.body
-  const creatTime = moment().format('YYYY-MM-DD HH:mm:ss')
-  db.query(sql, [content, category_id, openid, creatTime, type], function(err, result) {
-    res.json({status: 1})
-  })
-})
 
 router.get('/home', async function(req, res, next) {
-  const {postPage, pageSize} = req.query
-  const start = postPage * pageSize
-  const end = (postPage + 1) * pageSize
-  const count = await new Promise(function (resolve, reject) {
-    const sql = `select count(*) as c from post`
-    db.query(sql, [], function(err, result) {
-      resolve(result)
-    })
-  })
-
-  const postList = await new Promise(function (resolve, reject) {
-    const sql = "select * from post  where type = 'community' order by create_time desc limit ?, ?"
-    db.query(sql, [start, end], function(err, result) {
-      console.log(result, err)
-      resolve(result)
-    })
-  })
-  for (post of postList) {
-    let sql = `select * from category where id = ? `
-    const category = await new Promise(function(resolve, reject) {
-      db.query(sql, [post.category_id], function(err, result) {
-        resolve(result)
-      })
-    })
-    post.categoryName = category[0].name
-    sql = `select * from reply where post_id = ?`
-    const replys = await new Promise(function(resolve, reject) {
-      db.query(sql, [post.id], function(err, result) {
-        resolve(result)
-      })
-    })
-    sql = `select * from user where open_id = ?`
-    post.replys = replys
-    for (reply of replys) {
-      const user = await new Promise(function(resolve, reject) {
-        db.query(sql, [reply.user_id], function(err, result) {
+  try {
+    const {postPage, pageSize} = req.query
+    const start = postPage * pageSize
+    const end = (postPage + 1) * pageSize
+    const count = await new Promise(function (resolve, reject) {
+      const sql = `select count(*) as c from post where type = 'community'`
+      db.query(sql, [], function(err, result) {
+        if (!err) {
           resolve(result)
-        })
-      })
-      reply.user = {
-        name: user[0].name,
-        id: user[0].open_id
-      }
-      if (reply.at_user_id) {
-        const atUser = await new Promise(function(resolve, reject) {
-          db.query(sql, [reply.at_user_id], function(err, result) {
-            resolve(result)
-          })
-        })
-        reply.at_user = {
-          name: atUser[0].name,
-          id: atUser[0].open_id
+        } else {
+          reject(err)
         }
-      }
-    }
-    const user = await new Promise(function(resolve, reject) {
-      db.query(sql, [post.open_id], function(err, result) {
-        resolve(result)
       })
     })
-    post.create_time = moment(post.create_time).fromNow()
-    post.user = {
-      name: user[0].name,
-      avatar: user[0].avatar
-    }
-
-  }
-  res.json({count: count[0].c, postList, status: 1})
-})
-
-router.get('/posts', async function (req, res) {
-  const {postPage, pageSize, postId, type} = req.query
-  const start = postPage * pageSize
-  const end = (postPage + 1) * pageSize
-  const postList = await new Promise(function (resolve, reject) {
-    let sql
-    if (postId) {
-      sql = `select * from post where id < ?, type = ? order by create_time desc limit ?, ? `
-      db.query(sql, [postId, type, 
-        start, end], function(err, result) {
-        resolve(result)
-      })  
-    } else {
-      sql = `select * from post where type = ? order by create_time desc limit ?, ?`
-      db.query(sql, [type, start, end], function(err, result) {
-        resolve(result)
-      })  
-    }
-  })
-  for (post of postList) {
-    let sql
-    if (type === 'community') {
-      sql = `select * from category where id = ? `
+  
+    const postList = await new Promise(function (resolve, reject) {
+      const sql = "select * from post where type = 'community' order by create_time desc limit ?, ?"
+      db.query(sql, [start, end], function(err, result) {
+        if (!err) {
+          resolve(result)
+        } else {
+          reject(err)
+        }
+      })
+    })
+  
+    for (post of postList) {
+      let sql = `select * from category where id = ? `
       const category = await new Promise(function(resolve, reject) {
         db.query(sql, [post.category_id], function(err, result) {
-          resolve(result)
+          if (!err) {
+            resolve(result)
+          } else {
+            reject(err)
+          }
         })
       })
       post.categoryName = category[0].name
-    }
-    sql = `select * from reply where post_id = ?`
-    const replys = await new Promise(function(resolve, reject) {
-      db.query(sql, [post.id], function(err, result) {
-        resolve(result)
-      })
-    })
-    sql = `select * from user where open_id = ?`
-    post.replys = replys
-    for (reply of replys) {
-      const user = await new Promise(function(resolve, reject) {
-        db.query(sql, [reply.user_id], function(err, result) {
-          resolve(result)
+      sql = `select * from reply where post_id = ?`
+      const replys = await new Promise(function(resolve, reject) {
+        db.query(sql, [post.id], function(err, result) {
+          if (!err) {
+            resolve(result)
+          } else {
+            reject(err)
+          }
         })
       })
-      reply.user = {
-        name: user[0].name,
-        id: user[0].open_id
-      }
-      if (reply.at_user_id) {
-        const atUser = await new Promise(function(resolve, reject) {
-          db.query(sql, [reply.at_user_id], function(err, result) {
-            resolve(result)
+      sql = `select * from user where open_id = ?`
+      post.replys = replys
+      for (reply of replys) {
+        const user = await new Promise(function(resolve, reject) {
+          db.query(sql, [reply.user_id], function(err, result) {
+            if (!err) {
+              resolve(result)
+            } else {
+              reject(err)
+            }
           })
         })
-        reply.at_user = {
-          name: atUser[0].name,
-          id: atUser[0].open_id
+        reply.user = {
+          name: user[0].name,
+          id: user[0].open_id
+        }
+        if (reply.at_user_id) {
+          const atUser = await new Promise(function(resolve, reject) {
+            db.query(sql, [reply.at_user_id], function(err, result) {
+              if (!err) {
+                resolve(result)
+              } else {
+                reject(err)
+              }
+            })
+          })
+          reply.at_user = {
+            name: atUser[0].name,
+            id: atUser[0].open_id
+          }
         }
       }
-    }
-    const user = await new Promise(function(resolve, reject) {
-      db.query(sql, [post.open_id], function(err, result) {
-        resolve(result)
+      const user = await new Promise(function(resolve, reject) {
+        db.query(sql, [post.open_id], function(err, result) {
+          if (!err) {
+            resolve(result)
+          } else {
+            reject(err)
+          }
+        })
       })
-    })
-    post.create_time = moment(post.create_time).fromNow()
-    post.user = {
-      name: user[0].name,
-      avatar: user[0].avatar
+      post.create_time = moment(post.create_time).fromNow()
+      post.user = {
+        name: user[0].name,
+        avatar: user[0].avatar
+      }
     }
-  }
-  res.json({postList, status: 1})
+    res.json({count: count[0].c, postList, status: 1})
+  } catch(err) {
+    res.json({message: '获取信息失败', postList, status: 0})
+  }  
 })
 
 router.get('/category_list', async function(req, res, next) {
@@ -209,41 +158,4 @@ router.post('/update_user', async function (req, res, next) {
   res.json({status: 1})
 })
 
-router.post('/reply_post', async function (req, res, next) {
-  let sql = `insert into reply (content, post_id, user_id, at_user_id) values (?, ?, ?, ?)`
-  const {content, at_user_id, post_id, openid} = req.body
-  await new Promise(function (resolve, reject) {
-    db.query(sql, [content, post_id, openid, at_user_id], function(err, result) {
-      resolve(result)
-    })
-  })
-  sql = `select * from user where open_id = ?`
-  const user = await new Promise(function(resolve, reject) {
-    db.query(sql, [openid], function(err, result) {
-      resolve(result)
-    })
-  })
-  const reply = {
-    content,
-    post_id,
-    at_user_id,
-    user_id: openid,
-    user: {
-      id: user[0].open_id,
-      name: user[0].name
-    }
-  }
-  if (at_user_id) {
-    const atUser = await new Promise(function(resolve, reject) {
-      db.query(sql, [at_user_id], function(err, result) {
-        resolve(result)
-      })
-    })
-    reply.at_user = {
-      name: atUser[0].name,
-      id: atUser[0].open_id
-    }
-  }
-  res.json({reply, status: 1})
-})
 module.exports = router;
