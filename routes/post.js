@@ -9,18 +9,20 @@ moment.locale('zh-cn')
 // 帖子列表
 router.get('/', async function(req, res, next) {
   try {
-    let {postPage, pageSize, postId, type, openid} = req.query
+    let {postPage, pageSize, postId, type = 'community', openid, categoryId} = req.query
     postPage = Number(postPage)
     pageSize = Number(pageSize)
+    categoryId = categoryId && Number(categoryId)
     const start = postPage * pageSize
     const end = (postPage + 1) * pageSize
     const postList = await new Promise(function (resolve, reject) {
       let sql
       if (postId) {
-        sql = `select * from post where id < ? and type = ? order by create_time desc limit ?, ? `
+        sql = categoryId 
+          ? `select * from post where id < ? and type = ? and category_id = ${categoryId} order by create_time desc limit ?, ? `
+          : `select * from post where id < ? and type = ? order by create_time desc limit ?, ? `
         db.query(sql, [postId, type, 
           start, end], function(err, result) {
-          console.log(sql)
           if (!err) {
             resolve(result)
           } else {
@@ -28,7 +30,8 @@ router.get('/', async function(req, res, next) {
           }
         })  
       } else {
-        sql = `select * from post where type = ? order by create_time desc limit ?, ?`
+        sql = categoryId ? `select * from post where type = ? and category_id = ${categoryId} order by create_time desc limit ?, ?`
+         : `select * from post where type = ? order by create_time desc limit ?, ?`
         db.query(sql, [type, start, end], function(err, result) {
           if (!err) {
             resolve(result)
@@ -65,6 +68,17 @@ router.get('/', async function(req, res, next) {
           })
         })
         post.isPraised = praise.length > 0 && praise[0].status
+        sql = 'select count(*) as c from praise where praise_at_id = ? and status = 1'
+        const count = await new Promise(function(resolve, reject) {
+          db.query(sql, [post.id], function(err, result) {
+            if (!err) {
+              resolve(result)
+            } else {
+              reject(err)
+            }
+          })
+        })
+        post.praiseCount = count[0].c
       }
       sql = `select * from reply where post_id = ?`
       const replys = await new Promise(function(resolve, reject) {
