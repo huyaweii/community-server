@@ -132,17 +132,17 @@ router.get('/home', async function(req, res, next) {
         name: user[0].name,
         avatar: user[0].avatar
       }
-    sql = `select pic_url from post_pic where post_id = ?`
-    const images = await new Promise(function(resolve, reject) {
-      db.query(sql, [post.id], function(err, result) {
-        if (!err) {
-          resolve(result)
-        } else {
-          reject(err)
-        }
+      sql = `select pic_url from post_pic where post_id = ?`
+      const images = await new Promise(function(resolve, reject) {
+        db.query(sql, [post.id], function(err, result) {
+          if (!err) {
+            resolve(result)
+          } else {
+            reject(err)
+          }
+        })
       })
-    })
-    post.images = images.map(image => image.pic_url)
+      post.images = images.map(image => image.pic_url)
     }
     res.json({count: count[0].c, postList, status: 1})
   } catch(err) {
