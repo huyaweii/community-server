@@ -63,8 +63,8 @@ router.get('/home', async function(req, res, next) {
         }
       })
     })
-  
-    for (post of postList) {
+    
+    for (const post of postList) {
       let sql = `select * from category where id = ? `
       const category = await new Promise(function(resolve, reject) {
         db.query(sql, [post.category_id], function(err, result) {
@@ -75,6 +75,7 @@ router.get('/home', async function(req, res, next) {
           }
         })
       })
+      // post.categoryName = category[0].name
       post.categoryName = category[0].name
       sql = `select * from reply where post_id = ?`
       const replys = await new Promise(function(resolve, reject) {

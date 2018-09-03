@@ -41,7 +41,7 @@ router.get('/', async function(req, res, next) {
         })  
       }
     })
-    for (post of postList) {
+    for (const post of postList) {
       let sql
       if (type === 'community') {
         sql = `select * from category where id = ? `
@@ -56,7 +56,7 @@ router.get('/', async function(req, res, next) {
         })
         post.categoryName = category[0].name
       }
-      if (type === 'nearby') {
+      if (type === 'nearby' || type === 'anonymity') {
         sql = 'select * from praise where open_id = ? and praise_at_id = ?'
         const praise = await new Promise(function(resolve, reject) {
           db.query(sql, [openid, post.id], function(err, result) {
@@ -137,6 +137,166 @@ router.get('/', async function(req, res, next) {
         avatar: user[0].avatar
       }
 
+      sql = `select pic_url from post_pic where post_id = ?`
+      const images = await new Promise(function(resolve, reject) {
+        db.query(sql, [post.id], function(err, result) {
+          if (!err) {
+            resolve(result)
+          } else {
+            reject(err)
+          }
+        })
+      })
+      post.images = images.map(image => image.pic_url)
+    }
+    let count
+    if (postPage === 0) {
+      sql = 'select count(*) as c from post where type = ?'
+      const count = await new Promise(function(resolve, reject) {
+        db.query(sql, [type], function(err, result) {
+          if (!err) {
+            resolve(result)
+          } else {
+            reject(err)
+          }
+        })
+      })
+      return res.json({count: count[0].c, postList, status: 1})
+    }
+    res.json({postList, status: 1})
+  } catch(err) {
+    res.json({message: '获取列表失败', status: 0})
+    throw err
+  }  
+})
+
+// 发布者帖子列表
+router.get('/user/:id', async function(req, res, next) {
+  try {
+    let {postPage, pageSize, postId, type = 'community', openid} = req.query
+    postPage = Number(postPage)
+    pageSize = Number(pageSize)
+    const start = postPage * pageSize
+    const end = (postPage + 1) * pageSize
+    const postList = await new Promise(function (resolve, reject) {
+      let sql
+      if (postId) {
+        sql = `select * from post where id < ? and type = ? and open_id = ? order by create_time desc limit ?, ? `
+        db.query(sql, [postId, type, openid,
+          start, end], function(err, result) {
+          if (!err) {
+            resolve(result)
+          } else {
+            reject(err)
+          }
+        })  
+      } else {
+        sql = `select * from post where type = ? and open_id = ? order by create_time desc limit ?, ?`
+        db.query(sql, [type, openid, start, end], function(err, result) {
+          if (!err) {
+            resolve(result)
+          } else {
+            reject(err)
+          }
+        })  
+      }
+    })
+    for (const post of postList) {
+      let sql
+      if (type === 'community') {
+        sql = `select * from category where id = ? `
+        const category = await new Promise(function(resolve, reject) {
+          db.query(sql, [post.category_id], function(err, result) {
+            if (!err) {
+              resolve(result)          
+            } else {
+              reject(err)
+            }
+          })
+        })
+        post.categoryName = category[0].name
+      }
+      if (type === 'nearby' || type === 'anonymity') {
+        sql = 'select * from praise where open_id = ? and praise_at_id = ?'
+        const praise = await new Promise(function(resolve, reject) {
+          db.query(sql, [openid, post.id], function(err, result) {
+            if (!err) {
+              resolve(result)
+            } else {
+              reject(err)
+            }
+          })
+        })
+        post.isPraised = praise.length > 0 && praise[0].status
+        sql = 'select count(*) as c from praise where praise_at_id = ? and status = 1'
+        const count = await new Promise(function(resolve, reject) {
+          db.query(sql, [post.id], function(err, result) {
+            if (!err) {
+              resolve(result)
+            } else {
+              reject(err)
+            }
+          })
+        })
+        post.praiseCount = count[0].c
+      }
+      sql = `select * from reply where post_id = ?`
+      const replys = await new Promise(function(resolve, reject) {
+        db.query(sql, [post.id], function(err, result) {
+          if (!err) {
+            resolve(result)
+          } else {
+            reject(err)
+          }
+        })
+      })
+      sql = `select * from user where open_id = ?`
+      post.replys = replys
+      for (reply of replys) {
+        const user = await new Promise(function(resolve, reject) {
+          db.query(sql, [reply.user_id], function(err, result) {
+            if (!err) {
+              resolve(result)
+            } else {
+              reject(err)
+            }
+          })
+        })
+        reply.user = {
+          name: user[0].name,
+          id: user[0].open_id
+        }
+        if (reply.at_user_id) {
+          const atUser = await new Promise(function(resolve, reject) {
+            db.query(sql, [reply.at_user_id], function(err, result) {
+              if (!err) {
+                resolve(result)
+              } else {
+                reject(err)
+              }
+            })
+          })
+          reply.at_user = {
+            name: atUser[0].name,
+            id: atUser[0].open_id
+          }
+        }
+      }
+      sql = `select * from user where open_id = ?`
+      const user = await new Promise(function(resolve, reject) {
+        db.query(sql, [post.open_id], function(err, result) {
+          if (!err) {
+            resolve(result)
+          } else {
+            reject(err)
+          }
+        })
+      })
+      post.create_time = moment(post.create_time).fromNow()
+      post.user = {
+        name: user[0].name,
+        avatar: user[0].avatar
+      }
       sql = `select pic_url from post_pic where post_id = ?`
       const images = await new Promise(function(resolve, reject) {
         db.query(sql, [post.id], function(err, result) {
