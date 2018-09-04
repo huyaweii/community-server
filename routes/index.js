@@ -2,12 +2,19 @@ var express = require('express');
 var router = express.Router();
 const axios = require('axios')
 var app = express();
+var jwt = require('jwt-simple')
 var qiniu = require("qiniu")
-var db = require('../config')
+var {db, jwtKey} = require('../config')
 var moment = require('moment')
 moment.locale('zh-cn')
 //get请求
-/* GET home page. */
+// var client = require('redis').createClient();
+
+// client.set("name", "xixihaha");
+
+// client.on('error', function (err) {
+//   console.log('Error ' + err);
+// })
 
 router.get('/', function(req, res, next) {
   res.render('index', { title: 'Express' });
@@ -20,15 +27,45 @@ router.get('/login', async function (req, res, next) {
     const {avatar, name, gender} = req.query
     const sql = `select * from user where open_id = ?`
     db.query(sql, [result.data.openid], function(err, queryRes) {
+      const token = jwt.encode(
+        {
+          openid: result.data.openid
+        },
+        jwtKey
+      )
+      res.json({token, status: 1})
+      // if (queryRes.length === 0) {
+      //   const insertSql = `insert into user (open_id, avatar, name, gender) values (?, ?, ?, ?)`
+      //   db.query(insertSql, [openid, avatar, name, gender], function(err, addResult) {
+      //     res.json({...result.data, token, status: 1})
+      //   })
+      // } else {
+      //   const updateSql = `update user set avatar=?, name=?, gender=? where open_id=?`
+      //   db.query(updateSql, [avatar, name, Number(gender), openid], function(err, updateResult) {
+      //     res.json({...result.data, token, status: 1})
+      //   })
+      // }
+    })
+  } catch (err) {
+    res.send(err)
+  }
+})
+
+router.get('/sync_userInfo', async function (req, res, next) {
+  try {
+    let openid = jwt.decode(req.headers.token, jwtKey).openid
+    const {avatar, name, gender} = req.query
+    const sql = `select * from user where open_id = ?`
+    db.query(sql, [openid], function(err, queryRes) {
       if (queryRes.length === 0) {
         const insertSql = `insert into user (open_id, avatar, name, gender) values (?, ?, ?, ?)`
         db.query(insertSql, [openid, avatar, name, gender], function(err, addResult) {
-          res.json({...result.data, status: 1})
+          res.json({status: 1})
         })
       } else {
         const updateSql = `update user set avatar=?, name=?, gender=? where open_id=?`
         db.query(updateSql, [avatar, name, Number(gender), openid], function(err, updateResult) {
-          res.json({...result.data, status: 1})
+          res.json({status: 1})
         })
       }
     })
@@ -36,6 +73,7 @@ router.get('/login', async function (req, res, next) {
     res.send(err)
   }
 })
+
 
 router.get('/home', async function(req, res, next) {
   try {
@@ -53,7 +91,7 @@ router.get('/home', async function(req, res, next) {
       })
     })
   
-    const postList = await new Promise(function (resolve, reject) {
+    let postList = await new Promise(function (resolve, reject) {
       const sql = "select * from post where type = 'community' order by create_time desc limit ?, ?"
       db.query(sql, [start, end], function(err, result) {
         if (!err) {
@@ -63,7 +101,7 @@ router.get('/home', async function(req, res, next) {
         }
       })
     })
-    
+    postList = postList || []
     for (const post of postList) {
       let sql = `select * from category where id = ? `
       const category = await new Promise(function(resolve, reject) {
@@ -147,7 +185,7 @@ router.get('/home', async function(req, res, next) {
     }
     res.json({count: count[0].c, postList, status: 1})
   } catch(err) {
-    res.json({message: '获取信息失败', postList, status: 0})
+    res.json({message: '获取信息失败', postList: [], status: 0})
   }  
 })
 
@@ -163,7 +201,8 @@ router.get('/category_list', async function(req, res, next) {
 
 router.post('/update_user', async function (req, res, next) {
   const sql = `update user where set avatar=?, name=?, gender=? where open_id=?`
-  const {avatar, name, gender, openid} = req.body
+  let openid = jwt.decode(req.headers.token, jwtKey).openid
+  const {avatar, name, gender} = req.body
   const result = await new Promise(function (resolve, reject) {
     db.query(sql, [avatar, name, gender, openid], function(err, result) {
       resolve(result)

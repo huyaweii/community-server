@@ -9,6 +9,7 @@ var post = require('./routes/post');
 // var usersRouter = require('./routes/users');
 
 var app = express();
+app.set('jwtTokenCommunity', 'community-hyw')
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));

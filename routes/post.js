@@ -2,14 +2,16 @@ var express = require('express');
 var router = express.Router();
 const axios = require('axios')
 var app = express();
-var db = require('../config')
 var moment = require('moment')
 moment.locale('zh-cn')
+var jwt = require('jwt-simple')
+var {db, jwtKey} = require('../config')
 
 // 帖子列表
 router.get('/', async function(req, res, next) {
   try {
-    let {postPage, pageSize, postId, type = 'community', openid, categoryId} = req.query
+    let {postPage, pageSize, postId, type = 'community', categoryId} = req.query
+    let openid = jwt.decode(req.headers.token, jwtKey).openid
     postPage = Number(postPage)
     pageSize = Number(pageSize)
     categoryId = categoryId && Number(categoryId)
@@ -173,7 +175,8 @@ router.get('/', async function(req, res, next) {
 // 发布者帖子列表
 router.get('/user/:id', async function(req, res, next) {
   try {
-    let {postPage, pageSize, postId, type = 'community', openid} = req.query
+    let {postPage, pageSize, postId, type = 'community'} = req.query
+    let openid = jwt.decode(req.headers.token, jwtKey).openid
     postPage = Number(postPage)
     pageSize = Number(pageSize)
     const start = postPage * pageSize
@@ -334,7 +337,8 @@ router.get('/user/:id', async function(req, res, next) {
 router.post('/create', async function (req, res, next) {
   try {
     let sql = `insert into post (content, category_id, open_id, create_time, type, anonymity) values (?, ?, ?, ?, ?, ?)`
-    const {content, category_id, openid, type, anonymity, images} = req.body
+    const {content, category_id, type, anonymity, images} = req.body
+    let openid = jwt.decode(req.headers.token, jwtKey).openid
     const creatTime = moment().format('YYYY-MM-DD HH:mm:ss')
     const post = await new Promise((resolve, reject) => {
       db.query(sql, [content, category_id, openid, creatTime, type, anonymity], function(err, result) {
@@ -370,7 +374,8 @@ router.post('/create', async function (req, res, next) {
 
 // 点赞
 router.post('/praise', async function (req, res, next) {
-  const {openid, postId, status} = req.body
+  let openid = jwt.decode(req.headers.token, jwtKey).openid
+  const {postId, status} = req.body
   let sql = 'select * from praise where open_id = ? and praise_at_id = ?'
   const praise = await new Promise(function(resolve, reject) {
     db.query(sql, [openid, postId], function(err, result) {
@@ -416,8 +421,9 @@ router.post('/praise', async function (req, res, next) {
 // 回帖
 router.post('/reply', async function (req, res, next) {
   try {
+    let openid = jwt.decode(req.headers.token, jwtKey).openid
     let sql = `insert into reply (content, post_id, user_id, user_name, at_user_id, at_user_name) values (?, ?, ?, ?, ?, ?)`
-    const {content, at_user_id, post_id, openid, at_user_name, user_name} = req.body
+    const {content, at_user_id, post_id, at_user_name, user_name} = req.body
     await new Promise(function (resolve, reject) {
       db.query(sql, [content, post_id, openid, user_name, at_user_id, at_user_name], function(err, result) {
         if (!err) {
