@@ -220,7 +220,7 @@ router.get('/user/:id', async function(req, res, next) {
         post.categoryName = category[0].name
       }
       if (type === 'nearby' || type === 'anonymity') {
-        sql = 'select * from praise where open_id = ? and praise_at_id = ?'
+        sql = "select * from praise where open_id = ? and praise_at_id = ? and type = 'post'"
         const praise = await new Promise(function(resolve, reject) {
           db.query(sql, [openid, post.id], function(err, result) {
             if (!err) {
@@ -375,18 +375,18 @@ router.post('/create', async function (req, res, next) {
 // 点赞
 router.post('/praise', async function (req, res, next) {
   let openid = jwt.decode(req.headers.token, jwtKey).openid
-  const {postId, status} = req.body
-  let sql = 'select * from praise where open_id = ? and praise_at_id = ?'
+  const {postId, status, type} = req.body
+  let sql = 'select * from praise where open_id = ? and praise_at_id = ? and type = ?'
   const praise = await new Promise(function(resolve, reject) {
-    db.query(sql, [openid, postId], function(err, result) {
+    db.query(sql, [openid, postId, type], function(err, result) {
       resolve(result)
     })
   })
   if (praise.length === 0) {
-    let sql = 'insert into praise (open_id, praise_at_id, status) values(?, ?, 1)'
+    let sql = 'insert into praise (open_id, praise_at_id, status, type) values(?, ?, 1, ?)'
     try {
       const addPraise = await new Promise(function(resolve, reject) {
-        db.query(sql, [openid, postId, status], function(err, result) {
+        db.query(sql, [openid, postId, type], function(err, result) {
           if (!err) {
             resolve(result)
           } else {
@@ -399,10 +399,10 @@ router.post('/praise', async function (req, res, next) {
       throw err
     }
   } else {
-    let sql = 'update praise set status=? where open_id=? and praise_at_id=?'
+    let sql = 'update praise set status=? where open_id=? and praise_at_id=? and type = ?'
     try {
       const addPraise = await new Promise(function(resolve, reject) {
-        db.query(sql, [status, openid, postId], function(err, result) {
+        db.query(sql, [status, openid, postId, type], function(err, result) {
           if (!err) {
             resolve(result)
           } else {
