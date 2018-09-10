@@ -200,7 +200,7 @@ router.get('/category_list', async function(req, res, next) {
 })
 
 router.post('/update_user', async function (req, res, next) {
-  const sql = `update user where set avatar=?, name=?, gender=? where open_id=?`
+  const sql = `update user set avatar=?, name=?, gender=? where open_id=?`
   let openid = jwt.decode(req.headers.token, jwtKey).openid
   const {avatar, name, gender} = req.body
   const result = await new Promise(function (resolve, reject) {
