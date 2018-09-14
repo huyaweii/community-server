@@ -223,4 +223,19 @@ router.get('/uploadToken', async function(req, res, next) {
   const uploadToken = putPolicy.uploadToken(mac)
   res.json({ uploadToken, status: 1 })
 })
+
+router.post('/suggestion', async function(req, res, next) {
+  const {content} = req.body
+  let sql = 'insert into suggestion (content) values (?)'
+  try {
+    await new Promise(function (resolve, reject) {
+      db.query(sql, [content], function(err, result) {
+        resolve(result)
+      })
+    })
+    res.json({status: 1})
+  } catch (err) {
+    res.json({status: 0})
+  }
+})
 module.exports = router;

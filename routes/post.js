@@ -353,7 +353,6 @@ router.post('/create', async function (req, res, next) {
       sql = 'insert into post_pic (post_id, pic_url) values (?, ?)'
       for (image of images) {
         await new Promise((resolve, reject) => {
-          console.log(post.insertId, images, image)
           db.query(sql, [post.insertId, image], function(err, result) {
             if (!err) {
               resolve(result)
@@ -367,6 +366,7 @@ router.post('/create', async function (req, res, next) {
     }
     res.json({status: 1})
   } catch (err) {
+    console.log(err)
     res.json({message: '发布失败', status: 0})
     throw err
   }
