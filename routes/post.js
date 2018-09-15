@@ -167,7 +167,7 @@ router.get('/', async function(req, res, next) {
     }
     res.json({postList, status: 1})
   } catch(err) {
-    res.json({message: '获取列表失败', status: 0})
+    res.status(500).json({ error: '获取列表失败' })
     throw err
   }  
 })
@@ -328,8 +328,8 @@ router.get('/user/:id', async function(req, res, next) {
     }
     res.json({postList, status: 1})
   } catch(err) {
-    res.json({message: '获取列表失败', status: 0})
-    throw err
+    // res.json({message: '获取列表失败', status: 0})
+    throw '获取列表失败'
   }  
 })
 
