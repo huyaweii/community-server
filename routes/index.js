@@ -26,29 +26,48 @@ router.get('/login', async function (req, res, next) {
     const result = await axios.get(`https://api.weixin.qq.com/sns/jscode2session?appid=wx3683e9d056495ca8&secret=37e30f36192a20b4c88920325122e43f&js_code=${req.query.code}&grant_type=authorization_code`)
     const {openid} = result.data
     const {avatar, name, gender} = req.query
-    const sql = `select * from user where open_id = ?`
-    db.query(sql, [result.data.openid], function(err, queryRes) {
+    let sql = `select * from user where open_id = ?`
+    const user = await new Promise(function (resolve, reject) {
+      db.query(sql, [openid], function(err, result) {
+        if (!err) {
+          resolve(result)
+        } else {
+          reject(err)
+        }
+      })
+    })
+    if (user && user.length > 0) {
       const token = jwt.encode(
         {
-          openid: result.data.openid
+          openid,
+          user_id: user[0].id
         },
         jwtKey
       )
-      res.json({token, status: 1})
-      // if (queryRes.length === 0) {
-      //   const insertSql = `insert into user (open_id, avatar, name, gender) values (?, ?, ?, ?)`
-      //   db.query(insertSql, [openid, avatar, name, gender], function(err, addResult) {
-      //     res.json({...result.data, token, status: 1})
-      //   })
-      // } else {
-      //   const updateSql = `update user set avatar=?, name=?, gender=? where open_id=?`
-      //   db.query(updateSql, [avatar, name, Number(gender), openid], function(err, updateResult) {
-      //     res.json({...result.data, token, status: 1})
-      //   })
-      // }
-    })
+      res.json({token, user_id: user[0].id, status: 1})  
+    } else {
+      sql = `insert into user (open_id) values (?)`
+      const res = await new Promise(function (resolve, reject) {
+        db.query(sql, [openid], function(err, result) {
+          if (!err) {
+            resolve(result)
+          } else {
+            reject(err)
+          }
+        })
+      })
+      const token = jwt.encode(
+        {
+          openid,
+          user_id: res.insertId
+        },
+        jwtKey
+      )
+      res.json({token, user_id: res.insertId, status: 1})  
+    }
   } catch (err) {
-    res.send(err)
+    log.e(err)
+    res.json({message: '登录失败',status: 0})
   }
 })
 
@@ -57,7 +76,7 @@ router.get('/sync_userInfo', async function (req, res, next) {
     let openid = jwt.decode(req.headers.token, jwtKey).openid
     const {avatar, name, gender} = req.query
     const sql = `select * from user where open_id = ?`
-    db.query(sql, ['oKwjT5PaQctPt__T6L5OPxbg_K-Y'], function(err, queryRes) {
+    db.query(sql, [open_id], function(err, queryRes) {
       if (queryRes.length === 0) {
         const insertSql = `insert into user (open_id, avatar, name, gender) values (?, ?, ?, ?)`
         db.query(insertSql, [openid, avatar, name, gender], function(err, addResult) {
@@ -126,7 +145,7 @@ router.get('/home', async function(req, res, next) {
           }
         })
       })
-      sql = `select * from user where open_id = ?`
+      sql = `select * from user where id = ?`
       post.replys = replys
       for (reply of replys) {
         const user = await new Promise(function(resolve, reject) {
@@ -138,9 +157,17 @@ router.get('/home', async function(req, res, next) {
             }
           })
         })
-        reply.user = {
-          name: user[0].name,
-          id: user[0].open_id
+
+        // 兼容处理
+        if (user && user.length > 0) {
+          reply.user = {
+            name: user[0].name,
+            id: user[0].id
+          }  
+        } else {
+          reply.user = {
+            name: '未知'
+          }
         }
         if (reply.at_user_id) {
           const atUser = await new Promise(function(resolve, reject) {
@@ -154,12 +181,12 @@ router.get('/home', async function(req, res, next) {
           })
           reply.at_user = {
             name: atUser[0].name,
-            id: atUser[0].open_id
+            id: atUser[0].id
           }
         }
       }
       const user = await new Promise(function(resolve, reject) {
-        db.query(sql, [post.open_id], function(err, result) {
+        db.query(sql, [post.user_id], function(err, result) {
           if (!err) {
             resolve(result)
           } else {
@@ -187,7 +214,7 @@ router.get('/home', async function(req, res, next) {
     res.json({count: count[0].c, postList, status: 1})
   } catch(err) {
     log.e(err)
-    throw '获取信息失败'
+    throw err
     res.json({message: '获取信息失败', postList: [], status: 0})
   }  
 })

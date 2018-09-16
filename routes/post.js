@@ -11,7 +11,7 @@ const log = require('../config/log')
 router.get('/', async function(req, res, next) {
   try {
     let {postPage, pageSize, postId, type = 'community', categoryId} = req.query
-    let openid = jwt.decode(req.headers.token, jwtKey).openid
+    let {user_id} = jwt.decode(req.headers.token, jwtKey)
     postPage = Number(postPage)
     pageSize = Number(pageSize)
     categoryId = categoryId && Number(categoryId)
@@ -59,9 +59,9 @@ router.get('/', async function(req, res, next) {
         post.categoryName = category[0].name
       }
       if (type === 'nearby' || type === 'anonymity') {
-        sql = 'select * from praise where open_id = ? and praise_at_id = ?'
+        sql = 'select * from praise where user_id = ? and praise_at_id = ?'
         const praise = await new Promise(function(resolve, reject) {
-          db.query(sql, [openid, post.id], function(err, result) {
+          db.query(sql, [user_id, post.id], function(err, result) {
             if (!err) {
               resolve(result)
             } else {
@@ -92,7 +92,7 @@ router.get('/', async function(req, res, next) {
           }
         })
       })
-      sql = `select * from user where open_id = ?`
+      sql = `select * from user where id = ?`
       post.replys = replys
       for (reply of replys) {
         const user = await new Promise(function(resolve, reject) {
@@ -107,8 +107,12 @@ router.get('/', async function(req, res, next) {
         if (user && user.length > 0) {
           reply.user = {
             name: user[0].name,
-            id: user[0].open_id
+            id: user[0].id
           }  
+        } else {
+          reply.user = {
+            name: '未知'
+          }
         }
         if (reply.at_user_id) {
           const atUser = await new Promise(function(resolve, reject) {
@@ -122,12 +126,13 @@ router.get('/', async function(req, res, next) {
           })
           reply.at_user = {
             name: atUser[0].name,
-            id: atUser[0].open_id
+            id: atUser[0].id
           }
         }
       }
+      sql = `select * from user where id = ?`
       const user = await new Promise(function(resolve, reject) {
-        db.query(sql, [post.open_id], function(err, result) {
+        db.query(sql, [post.user_id], function(err, result) {
           if (!err) {
             resolve(result)
           } else {
@@ -138,7 +143,8 @@ router.get('/', async function(req, res, next) {
       post.create_time = moment(post.create_time).fromNow()
       post.user = {
         name: user[0].name,
-        avatar: user[0].avatar
+        avatar: user[0].avatar,
+        id: user[0].id
       }
 
       sql = `select pic_url from post_pic where post_id = ?`
@@ -179,7 +185,7 @@ router.get('/', async function(req, res, next) {
 router.get('/user/:id', async function(req, res, next) {
   try {
     let {postPage, pageSize, postId, type = 'community'} = req.query
-    let openid = jwt.decode(req.headers.token, jwtKey).openid
+    let {user_id} = jwt.decode(req.headers.token, jwtKey)
     postPage = Number(postPage)
     pageSize = Number(pageSize)
     const start = postPage * pageSize
@@ -187,8 +193,8 @@ router.get('/user/:id', async function(req, res, next) {
     const postList = await new Promise(function (resolve, reject) {
       let sql
       if (postId) {
-        sql = `select * from post where id < ? and type = ? and open_id = ? order by create_time desc limit ?, ? `
-        db.query(sql, [postId, type, openid,
+        sql = `select * from post where id < ? and type = ? and user_id = ? order by create_time desc limit ?, ? `
+        db.query(sql, [postId, type, user_id,
           start, end], function(err, result) {
           if (!err) {
             resolve(result)
@@ -197,8 +203,8 @@ router.get('/user/:id', async function(req, res, next) {
           }
         })  
       } else {
-        sql = `select * from post where type = ? and open_id = ? order by create_time desc limit ?, ?`
-        db.query(sql, [type, openid, start, end], function(err, result) {
+        sql = `select * from post where type = ? and user_id = ? order by create_time desc limit ?, ?`
+        db.query(sql, [type, user_id, start, end], function(err, result) {
           if (!err) {
             resolve(result)
           } else {
@@ -223,9 +229,9 @@ router.get('/user/:id', async function(req, res, next) {
         post.categoryName = category[0].name
       }
       if (type === 'nearby' || type === 'anonymity') {
-        sql = "select * from praise where open_id = ? and praise_at_id = ? and type = 'post'"
+        sql = "select * from praise where user_id = ? and praise_at_id = ? and type = 'post'"
         const praise = await new Promise(function(resolve, reject) {
-          db.query(sql, [openid, post.id], function(err, result) {
+          db.query(sql, [user_id, post.id], function(err, result) {
             if (!err) {
               resolve(result)
             } else {
@@ -256,7 +262,7 @@ router.get('/user/:id', async function(req, res, next) {
           }
         })
       })
-      sql = `select * from user where open_id = ?`
+      sql = `select * from user where id = ?`
       post.replys = replys
       for (reply of replys) {
         const user = await new Promise(function(resolve, reject) {
@@ -270,7 +276,7 @@ router.get('/user/:id', async function(req, res, next) {
         })
         reply.user = {
           name: user[0].name,
-          id: user[0].open_id
+          id: user[0].id
         }
         if (reply.at_user_id) {
           const atUser = await new Promise(function(resolve, reject) {
@@ -284,13 +290,13 @@ router.get('/user/:id', async function(req, res, next) {
           })
           reply.at_user = {
             name: atUser[0].name,
-            id: atUser[0].open_id
+            id: atUser[0].id
           }
         }
       }
-      sql = `select * from user where open_id = ?`
+      sql = `select * from user where id = ?`
       const user = await new Promise(function(resolve, reject) {
-        db.query(sql, [post.open_id], function(err, result) {
+        db.query(sql, [post.user_id], function(err, result) {
           if (!err) {
             resolve(result)
           } else {
@@ -339,12 +345,12 @@ router.get('/user/:id', async function(req, res, next) {
 // 发帖
 router.post('/create', async function (req, res, next) {
   try {
-    let sql = `insert into post (content, category_id, open_id, create_time, type, anonymity) values (?, ?, ?, ?, ?, ?)`
+    let sql = `insert into post (content, category_id, user_id, create_time, type, anonymity) values (?, ?, ?, ?, ?, ?)`
     const {content, category_id, type, anonymity, images} = req.body
-    let openid = jwt.decode(req.headers.token, jwtKey).openid
+    let userId = jwt.decode(req.headers.token, jwtKey).user_id
     const creatTime = moment().format('YYYY-MM-DD HH:mm:ss')
     const post = await new Promise((resolve, reject) => {
-      db.query(sql, [content, category_id, openid, creatTime, type, anonymity], function(err, result) {
+      db.query(sql, [content, category_id, userId, creatTime, type, anonymity], function(err, result) {
         if (!err) {
           resolve(result)
         } else {
@@ -369,7 +375,7 @@ router.post('/create', async function (req, res, next) {
     }
     res.json({status: 1})
   } catch (err) {
-    console.log(err)
+    log.e(err)
     res.json({message: '发布失败', status: 0})
     throw err
   }
@@ -377,19 +383,19 @@ router.post('/create', async function (req, res, next) {
 
 // 点赞
 router.post('/praise', async function (req, res, next) {
-  let openid = jwt.decode(req.headers.token, jwtKey).openid
+  let userId = jwt.decode(req.headers.token, jwtKey).user_id
   const {postId, status, type} = req.body
-  let sql = 'select * from praise where open_id = ? and praise_at_id = ? and type = ?'
+  let sql = 'select * from praise where user_id = ? and praise_at_id = ? and type = ?'
   const praise = await new Promise(function(resolve, reject) {
-    db.query(sql, [openid, postId, type], function(err, result) {
+    db.query(sql, [userId, postId, type], function(err, result) {
       resolve(result)
     })
   })
   if (praise.length === 0) {
-    let sql = 'insert into praise (open_id, praise_at_id, status, type) values(?, ?, 1, ?)'
+    let sql = 'insert into praise (user_id, praise_at_id, status, type) values(?, ?, 1, ?)'
     try {
       const addPraise = await new Promise(function(resolve, reject) {
-        db.query(sql, [openid, postId, type], function(err, result) {
+        db.query(sql, [userId, postId, type], function(err, result) {
           if (!err) {
             resolve(result)
           } else {
@@ -397,15 +403,17 @@ router.post('/praise', async function (req, res, next) {
           }
         })
       })
+      res.json({status: 1})
     } catch (err) {
+      log.e(err)
       res.json({message: '点赞失败', status: 0})
       throw err
     }
   } else {
-    let sql = 'update praise set status=? where open_id=? and praise_at_id=? and type = ?'
+    let sql = 'update praise set status=? where user_id= ? and praise_at_id=? and type = ?'
     try {
       const addPraise = await new Promise(function(resolve, reject) {
-        db.query(sql, [status, openid, postId, type], function(err, result) {
+        db.query(sql, [status, userId, postId, type], function(err, result) {
           if (!err) {
             resolve(result)
           } else {
@@ -413,7 +421,9 @@ router.post('/praise', async function (req, res, next) {
           }
         })
       })
+      res.json({status: 1})
     } catch(err) {
+      log.e(err)
       res.json({message: '操作失败', status: 0})
       throw err
     }
@@ -424,11 +434,11 @@ router.post('/praise', async function (req, res, next) {
 // 回帖
 router.post('/reply', async function (req, res, next) {
   try {
-    let openid = jwt.decode(req.headers.token, jwtKey).openid
+    let userId = jwt.decode(req.headers.token, jwtKey).user_id
     let sql = `insert into reply (content, post_id, user_id, user_name, at_user_id, at_user_name) values (?, ?, ?, ?, ?, ?)`
     const {content, at_user_id, post_id, at_user_name, user_name} = req.body
     await new Promise(function (resolve, reject) {
-      db.query(sql, [content, post_id, openid, user_name, at_user_id, at_user_name], function(err, result) {
+      db.query(sql, [content, post_id, userId, user_name, at_user_id, at_user_name], function(err, result) {
         if (!err) {
           resolve(result)
         } else {
@@ -436,9 +446,9 @@ router.post('/reply', async function (req, res, next) {
         }
       })
     })
-    sql = `select * from user where open_id = ?`
+    sql = `select * from user where id = ?`
     const user = await new Promise(function(resolve, reject) {
-      db.query(sql, [openid], function(err, result) {
+      db.query(sql, [userId], function(err, result) {
         if (!err) {
           resolve(result)
         } else {
@@ -450,11 +460,12 @@ router.post('/reply', async function (req, res, next) {
       content,
       post_id,
       at_user_id,
-      user_id: openid,
+      user_id: userId,
       user: {
-        id: user[0].open_id,
+        id: user[0].id,
         name: user[0].name
-      }
+      },
+      user_name
     }
     if (at_user_id) {
       const atUser = await new Promise(function(resolve, reject) {
@@ -464,12 +475,14 @@ router.post('/reply', async function (req, res, next) {
       })
       reply.at_user = {
         name: atUser[0].name,
-        id: atUser[0].open_id
+        id: atUser[0].id
       }
     }
     res.json({reply, status: 1})
   } catch (err) {
+    log.e(err)
     res.json({message: '回帖失败', status: 0})
+    throw err
   }
   
 })
