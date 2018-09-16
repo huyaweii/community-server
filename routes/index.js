@@ -5,6 +5,7 @@ var app = express();
 var jwt = require('jwt-simple')
 var qiniu = require("qiniu")
 var {db, jwtKey} = require('../config')
+const log = require('../config/log')
 var moment = require('moment')
 moment.locale('zh-cn')
 //get请求
@@ -185,6 +186,8 @@ router.get('/home', async function(req, res, next) {
     }
     res.json({count: count[0].c, postList, status: 1})
   } catch(err) {
+    log.e(err)
+    throw '获取信息失败'
     res.json({message: '获取信息失败', postList: [], status: 0})
   }  
 })

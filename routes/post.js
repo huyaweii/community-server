@@ -6,7 +6,7 @@ var moment = require('moment')
 moment.locale('zh-cn')
 var jwt = require('jwt-simple')
 var {db, jwtKey} = require('../config')
-
+const log = require('../config/log')
 // 帖子列表
 router.get('/', async function(req, res, next) {
   try {
@@ -167,6 +167,7 @@ router.get('/', async function(req, res, next) {
     }
     res.json({postList, status: 1})
   } catch(err) {
+    log.e(err)
     res.status(500).json({ error: '获取列表失败' })
     throw err
   }  
