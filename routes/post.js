@@ -104,7 +104,7 @@ router.get('/', async function(req, res, next) {
             }
           })
         })
-        if (user.length > 0) {
+        if (user && user.length > 0) {
           reply.user = {
             name: user[0].name,
             id: user[0].open_id
