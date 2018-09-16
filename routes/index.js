@@ -57,7 +57,7 @@ router.get('/sync_userInfo', async function (req, res, next) {
     let openid = jwt.decode(req.headers.token, jwtKey).openid
     const {avatar, name, gender} = req.query
     const sql = `select * from user where open_id = ?`
-    db.query(sql, [openid], function(err, queryRes) {
+    db.query(sql, ['oKwjT5PaQctPt__T6L5OPxbg_K-Y'], function(err, queryRes) {
       if (queryRes.length === 0) {
         const insertSql = `insert into user (open_id, avatar, name, gender) values (?, ?, ?, ?)`
         db.query(insertSql, [openid, avatar, name, gender], function(err, addResult) {
