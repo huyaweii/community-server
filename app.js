@@ -5,8 +5,6 @@ var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 const log = require('./config/log')
 var home = require('./routes/index');
-var post = require('./routes/post');
-var merchantService = require('./routes/merchantService');
 // var usersRouter = require('./routes/users');
 var app = express();
 app.set('jwtTokenCommunity', 'community-hyw')
@@ -35,9 +33,6 @@ app.use(async function(err, req, res, next) {
   // res.render('error');
 })
 app.use('/', home);
-app.use('/post', post);
-app.use('/merchantService', merchantService);
-
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
   next(createError(404));
