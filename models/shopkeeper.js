@@ -8,6 +8,10 @@ const shopkeeper = {
     let sql = 'delete from service where id = ?'
     return await db.asyncQuery(sql, [id])
   },
+  update: async (id, values) => {
+    let sql = 'update shopkeeper set ? where id = ?'
+    return await db.asyncQuery(sql, [values, id])
+  },
   find: async (serviceid) => {
     let sql = 'select * from shopkeeper where service_id = ?'
     return await db.asyncQuery(sql, [serviceid])

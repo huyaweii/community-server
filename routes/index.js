@@ -1,13 +1,11 @@
-var express = require('express');
-var router = express.Router();
+const express = require('express');
+const router = express.Router();
 const axios = require('axios')
-var app = express();
-var jwt = require('jwt-simple')
-var qiniu = require("qiniu")
-var {db, jwtKey} = require('../config')
-const log = require('../config/log')
-var moment = require('moment')
-var merchantService = require('./merchantService');
-
+const app = express();
+const merchantService = require('./merchantService');
+const user = require('./user');
+const setOpenid = require('../middlewares/openid')
+router.use(setOpenid)
 router.use('/merchantService', merchantService);
+router.use('/user', user)
 module.exports = router;
