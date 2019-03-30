@@ -5,12 +5,12 @@ const app = express()
 const db = require('../utils/db')
 const service = require('../models/service')
 const shopkeeper = require('../models/shopkeeper')
-const shopkeeperLike = require('../models/shopkeepeLike')
+const shopkeeperLike = require('../models/shopkeeperLike')
 
 router.get('/', async function(req, res, next) {
   try {
     const services = await service.find()
-    res.json({services, status: 1})
+    res.json({recommendServices: services.slice(0, 3), convenienceServices: services.slice(3), status: 1})
   } catch (err) {
     res.json({services: [], status: 0})
     throw err
@@ -19,8 +19,9 @@ router.get('/', async function(req, res, next) {
 
 router.get('/:id/shopkeepers', async function(req, res, next) {
   const {openid} = req.headers
+  const {page, pageSize} = req.query
   try {
-    const shopkeepers = await shopkeeper.find(req.params.id)
+    const shopkeepers = await shopkeeper.find(req.params.id, page, pageSize)
     for (const shopkeeper of shopkeepers) {
       const like = await shopkeeperLike.findOne(shopkeeper.id, openid)
       shopkeeper.isLike = Boolean(like)
@@ -28,7 +29,7 @@ router.get('/:id/shopkeepers', async function(req, res, next) {
     res.json({shopkeepers, status: 1})
   } catch (err) {
     console.log(err)
-    res.json({services: [], status: 0})
+    res.json({shopkeepers: [], status: 0})
   }
 })
 

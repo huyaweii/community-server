@@ -9,7 +9,7 @@ const service = {
     return await db.asyncQuery(sql, [id])
   },
   find: async () => {
-    let sql = 'select * from service'
+    let sql = 'select * from service order by priority desc'
     return await db.asyncQuery(sql)
   }
 }

@@ -15,7 +15,11 @@ const shopkeeperLike = {
       return res[0]
     }
     return null
-  }
+  },
+  find: async (openid, page = 0, pageSize = 10) => {
+    let sql = 'select * from shopkeeper_like where openid = ? order by id desc limit ?, ?'
+    return await db.asyncQuery(sql, [openid, page * pageSize, (page + 1) * pageSize])
+  },
 }
 module.exports = shopkeeperLike
 
