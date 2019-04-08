@@ -6,6 +6,7 @@ const merchantService = require('./merchantService');
 const shopkeeper = require('./shopkeeper');
 const product = require('./product')
 const user = require('./user');
+const five = require('./five');
 const setOpenid = require('../middlewares/openid')
 const qiniu = require("qiniu")
 
@@ -15,6 +16,7 @@ router.use('/shopkeeper', shopkeeper)
 router.use('/product', product)
 router.use('/user', user)
 
+router.use('/five', five)
 
 router.get('/uploadToken', async function(req, res, next) {
   const ak = 'xZxQTiyq-gMh-bTC-Ea4I4ps0bfWJR2Q5_ijaxh_'

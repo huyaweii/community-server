@@ -7,6 +7,14 @@ const log = require('./config/log')
 var home = require('./routes/index');
 // var usersRouter = require('./routes/users');
 var app = express();
+//设置跨域访问
+app.all('*', function(req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*")
+  res.header("Access-Control-Allow-Methods","PUT,POST,GET,DELETE,OPTIONS")
+  res.header("Access-Control-Allow-Headers", "Content-Type")
+  res.header("Content-Type", "application/json")
+  next()
+})
 app.set('jwtTokenCommunity', 'community-hyw')
 global.log = log
 // view engine setup
