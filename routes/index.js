@@ -16,7 +16,7 @@ router.use('/shopkeeper', shopkeeper)
 router.use('/product', product)
 router.use('/user', user)
 
-router.use('/five', five)
+router.use('/fives', five)
 
 router.get('/uploadToken', async function(req, res, next) {
   const ak = 'xZxQTiyq-gMh-bTC-Ea4I4ps0bfWJR2Q5_ijaxh_'
