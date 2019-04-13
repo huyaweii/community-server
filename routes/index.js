@@ -7,6 +7,7 @@ const shopkeeper = require('./shopkeeper');
 const product = require('./product')
 const user = require('./user');
 const five = require('./five');
+const post = require('./post');
 const setOpenid = require('../middlewares/openid')
 const qiniu = require("qiniu")
 
@@ -14,6 +15,7 @@ router.use(setOpenid)
 router.use('/merchantService', merchantService)
 router.use('/shopkeeper', shopkeeper)
 router.use('/product', product)
+router.use('/post', post)
 router.use('/user', user)
 
 router.use('/fives', five)

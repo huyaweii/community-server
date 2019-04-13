@@ -3,6 +3,7 @@ const router = express.Router();
 const axios = require('axios')
 const app = express();
 const jwt = require('jwt-simple')
+const user = require('../models/user')
 const {db, jwtKey} = require('../config')
 
 router.get('/login', async function(req, res, next) {
@@ -21,4 +22,22 @@ router.get('/login', async function(req, res, next) {
     throw err
   }
 })
+
+router.post('/create', async function(req, res, next) {
+  const {openid} = req.headers
+  const {nickName, avatarUrl} = req.body
+  try {
+    const userInfo = await user.findOne('openid', openid)
+    if (userInfo) {
+      await user.update(openid, {nick_name: nickName, avatar_url: avatarUrl})
+    } else {
+      await user.add({openid, nick_name: nickName, avatar_url: avatarUrl})
+    }
+    res.json({status: 1}) 
+  } catch (err) {
+    res.json({status: 0})
+    throw err
+  }
+})
+
 module.exports = router;
